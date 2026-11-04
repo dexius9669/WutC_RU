@@ -282,7 +282,7 @@ def insert_quick_index(soup: BeautifulSoup) -> None:
 
 
 def prepare_tables(soup: BeautifulSoup) -> None:
-    numeric_re = re.compile(r"^[\d\s.,%×xX*+:/()\-–—dD]+(sp)?$")
+    numeric_re = re.compile(r"^[\d\s.,%×xX*+:/()\-–—dDсСпП]+$")
     cost_words = ("стоимость", "цена", "плата", "ценность", "cost")
 
     for table in soup.find_all("table"):
@@ -308,7 +308,8 @@ def prepare_tables(soup: BeautifulSoup) -> None:
             table.wrap(wrapper)
             continue
 
-        head_cells = head.find_all(["th", "td"], recursive=False)
+        head_row = head.find("tr")
+        head_cells = head_row.find_all(["th", "td"]) if head_row is not None else []
         column_count = max(
             len(head_cells),
             max(len(row.find_all(["th", "td"], recursive=False)) for row in rows),
