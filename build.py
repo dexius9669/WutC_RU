@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 import subprocess
 import sys
@@ -39,7 +40,7 @@ BOOKS = [
 ]
 
 PAGE_TEMPLATE = """<!DOCTYPE html>
-<html lang="ru" data-bs-theme="light">
+<html lang="ru" data-bs-theme="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -49,7 +50,7 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Aladin&family=Alegreya:ital,wght@0,400;0,700;1,400;1,700&family=Averia+Serif+Libre:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/style.css" rel="stylesheet">
+    <link href="assets/style.css?v={css_v}" rel="stylesheet">
 </head>
 <body>
 <a class="visually-hidden-focusable" href="#main">К содержанию</a>
@@ -64,11 +65,6 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
             <ul class="navbar-nav me-auto">
 {nav}
             </ul>
-            <button id="themeToggle" class="btn btn-sm wutc-theme-toggle ms-lg-2 mt-2 mt-lg-0"
-                    type="button" aria-label="Переключить тему">
-                <span class="theme-icon theme-icon-light" aria-hidden="true">&#9788;</span>
-                <span class="theme-icon theme-icon-dark" aria-hidden="true">&#9790;</span>
-            </button>
         </div>
     </div>
 </nav>
@@ -83,7 +79,7 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
     </footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="assets/app.js"></script>
+<script src="assets/app.js?v={js_v}"></script>
 </body>
 </html>
 """
@@ -226,7 +222,7 @@ def prepare_tables(soup: BeautifulSoup) -> None:
     cost_words = ("стоимость", "цена", "плата", "ценность", "cost")
 
     for table in soup.find_all("table"):
-        table["class"] = ["table", "table-light", "table-striped", "table-sm"]
+        table["class"] = ["table", "table-striped", "table-sm"]
 
         for row in table.find_all("tr"):
             cells = row.find_all("td", recursive=False)
@@ -336,12 +332,16 @@ def main() -> None:
         )
 
     navbar = render_navbar(processed)
+    css_v = hashlib.sha1((ROOT / "assets" / "style.css").read_bytes()).hexdigest()[:10]
+    js_v = hashlib.sha1((ROOT / "assets" / "app.js").read_bytes()).hexdigest()[:10]
     for page in processed:
         html = PAGE_TEMPLATE.format(
             lang="ru",
             title=escape(page["title"]),
             short=escape(page["short"]),
             nav=navbar,
+            css_v=css_v,
+            js_v=js_v,
             content=page["content"],
         )
         (ROOT / page["file"]).write_text(html, encoding="utf-8")

@@ -1,26 +1,15 @@
-/* WutC-RU — оформление по мотивам callmepartario.github.io/wutc */
+/* WutC-RU — тёмное оформление по мотивам callmepartario.github.io/wutc */
 
 :root {
-    --wutc-green: #164;
-    --wutc-deep: #064;
-    --wutc-deep-dark: #032;
-    --wutc-paper: #ffffff;
-    --wutc-paper-soft: #f2fffc;
-    --wutc-ink: #000000;
-    --wutc-link: #2b71f4;
-    --wutc-link-hover: #225ac3;
-    --wutc-rule: #164;
-    --wutc-navbar: #f2fffc;
-    --wutc-shadow: rgba(0, 0, 0, .08);
-}
-
-[data-bs-theme="dark"] {
+    color-scheme: dark;
     --wutc-green: #9dc;
     --wutc-paper: #1c1f21;
     --wutc-paper-soft: #222829;
+    --wutc-deep: #032;
     --wutc-ink: #ffffff;
     --wutc-link: #facc8e;
     --wutc-link-hover: #fca832;
+    --wutc-rule: #164;
     --wutc-navbar: #164;
     --wutc-shadow: rgba(0, 0, 0, .45);
 }
@@ -37,10 +26,6 @@ body {
     line-height: 1.5;
     color: var(--wutc-ink);
     background-color: var(--wutc-deep);
-}
-
-[data-bs-theme="dark"] body {
-    background-color: var(--wutc-deep-dark);
 }
 
 a {
@@ -69,24 +54,16 @@ p {
     font-size: 1.25rem;
     font-weight: 600;
     line-height: 1.2;
-    color: var(--wutc-green);
-}
-
-[data-bs-theme="dark"] .wutc-navbar .navbar-brand {
     color: #ffffff;
 }
 
 .wutc-navbar .nav-link {
-    color: var(--wutc-green);
+    color: #ffffff;
     font-weight: 400;
 }
 
-[data-bs-theme="dark"] .wutc-navbar .nav-link {
-    color: #ffffff;
-}
-
 .wutc-navbar .dropdown-menu {
-    background-color: var(--wutc-paper);
+    background-color: var(--wutc-paper-soft);
     border-color: var(--wutc-rule);
 }
 
@@ -96,34 +73,8 @@ p {
 
 .wutc-navbar .dropdown-item:hover,
 .wutc-navbar .dropdown-item:focus {
-    background-color: var(--wutc-paper-soft);
+    background-color: var(--wutc-paper);
     color: var(--wutc-green);
-}
-
-.wutc-theme-toggle {
-    border: 1px solid var(--wutc-rule);
-    color: var(--wutc-green);
-    background-color: transparent;
-    line-height: 1;
-    font-size: 1.1rem;
-    padding: .25rem .5rem;
-}
-
-.wutc-theme-toggle:hover {
-    background-color: var(--wutc-paper-soft);
-    color: var(--wutc-green);
-}
-
-.theme-icon-light {
-    display: none;
-}
-
-[data-bs-theme="dark"] .theme-icon-light {
-    display: inline;
-}
-
-[data-bs-theme="dark"] .theme-icon-dark {
-    display: none;
 }
 
 /* ---------- Основной блок ---------- */
@@ -233,6 +184,7 @@ h6 {
 .wutc-quote {
     font-style: italic;
     font-size: 1.25rem;
+    font-weight: 700;
     text-align: center;
     color: var(--wutc-green);
     border: 0;
@@ -298,8 +250,18 @@ h4:hover .header-anchor,
     margin: 1.25rem 0 1.5rem;
 }
 
+.table {
+    --bs-table-color: var(--wutc-ink);
+    --bs-table-bg: transparent;
+    --bs-table-border-color: rgba(255, 255, 255, .15);
+    --bs-table-striped-color: var(--wutc-ink);
+    --bs-table-striped-bg: rgba(255, 255, 255, .06);
+    --bs-table-hover-color: var(--wutc-ink);
+}
+
 .table thead th {
     vertical-align: bottom;
+    border-bottom-color: rgba(255, 255, 255, .35);
 }
 
 /* ---------- Мелкое ---------- */
@@ -312,22 +274,4 @@ code {
 :focus-visible {
     outline: .15rem solid var(--wutc-link);
     outline-offset: .15rem;
-}
-
-@media print {
-    body {
-        background: #ffffff;
-    }
-
-    .wutc-navbar,
-    .wutc-footer,
-    .wutc-toc,
-    .header-anchor {
-        display: none !important;
-    }
-
-    .wutc-content {
-        box-shadow: none;
-        padding: 0;
-    }
 }
