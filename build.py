@@ -22,21 +22,18 @@ BOOKS = [
         "file": "index.html",
         "title": "Книга 1 — Правила",
         "short": "Книга 1",
-        "toc_levels": (2, 3),
         "nav_levels": (2, 3),
     },
     {
         "file": "magic.html",
         "title": "Книга 2 — Магия",
         "short": "Книга 2",
-        "toc_levels": (2, 3),
         "nav_levels": (2,),
     },
     {
         "file": "treasure.html",
         "title": "Treasure",
         "short": "Treasure",
-        "toc_levels": (2, 3),
         "nav_levels": (2,),
     },
 ]
@@ -50,13 +47,13 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
     <title>{title} — Wolves Upon the Coast</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Aladin&family=Averia+Serif+Libre:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Aladin&family=Alegreya:ital,wght@0,400;0,700;1,400;1,700&family=Averia+Serif+Libre:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/style.css" rel="stylesheet">
 </head>
 <body>
 <a class="visually-hidden-focusable" href="#main">К содержанию</a>
-<nav class="navbar navbar-expand-lg sticky-top wutc-navbar">
+<nav class="navbar navbar-expand-md sticky-top wutc-navbar">
     <div class="container-xxl">
         <a class="navbar-brand" href="index.html">WUTC-RU</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#wutcNav"
@@ -80,7 +77,9 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
 {content}
     </main>
     <footer class="wutc-footer">
-        <p>Wolves Upon the Coast · перевод на русский · <a href="index.html">Книга 1</a> · <a href="magic.html">Книга 2</a> · <a href="treasure.html">Treasure</a></p>
+        <p>Wolves Upon the Coast · перевод на русский:
+            <a href="https://t.me/pcspeoplestoo" target="_blank" rel="noopener">@pcspeoplestoo</a>
+            · <a href="index.html">Книга 1</a> · <a href="magic.html">Книга 2</a> · <a href="treasure.html">Treasure</a></p>
     </footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -152,29 +151,139 @@ def add_anchors(soup: BeautifulSoup) -> None:
         heading.insert(0, anchor)
 
 
+def extract_subtitle(soup: BeautifulSoup) -> None:
+    """Переносит «## Книга N — …» в подзаголовок внутри h1."""
+    h1 = soup.find("h1")
+    if h1 is None:
+        return
+
+    h2s = soup.find_all("h2")
+    subtitle = None
+    if h2s and re.match(r"^Книга\s+\d", h2s[0].get_text(" ", strip=True)):
+        subtitle = h2s[0]
+
+    title = h1.get_text(" ", strip=True)
+    h1.clear()
+    h1.append(title)
+    h1["class"] = h1.get("class", []) + ["text-center"]
+
+    if subtitle is not None:
+        sub_id = subtitle.get("id")
+        sub_text = subtitle.get_text(" ", strip=True)
+        subtitle.decompose()
+        span = soup.new_tag("span")
+        span["class"] = "wutc-subtitle"
+        if sub_id:
+            span["id"] = sub_id
+        span.string = sub_text
+        h1.append(span)
+
+
+def style_quotes(soup: BeautifulSoup, spec: dict) -> None:
+    """Оформляет вступление Книги 1 и эпиграф как wutc-quote."""
+    if spec["file"] == "index.html":
+        paragraphs = soup.find_all("p")
+        texts = [p.get_text(" ", strip=True) for p in paragraphs]
+        author_idx = next(
+            (i for i, text in enumerate(texts) if text == "Luke Gearing"), None
+        )
+        if author_idx is not None:
+            end_idx = next(
+                (
+                    i
+                    for i, text in enumerate(texts)
+                    if i > author_idx and text.startswith("Только для использования")
+                ),
+                None,
+            )
+            if end_idx is not None:
+                group = paragraphs[author_idx + 1:end_idx]
+                if group:
+                    quote = soup.new_tag("p")
+                    quote["class"] = "wutc-quote"
+                    for idx, paragraph in enumerate(group):
+                        text = paragraph.get_text(" ", strip=True)
+                        parts = re.split(r"(?<=\.)\s+", text) if idx == 0 else [text]
+                        for part_idx, part in enumerate(parts):
+                            span = soup.new_tag("span")
+                            classes = ["d-block"]
+                            if idx > 0 and part_idx == 0:
+                                classes.append("mt-3")
+                            span["class"] = classes
+                            span.string = part
+                            quote.append(span)
+                    group[0].insert_before(quote)
+                    for paragraph in group:
+                        paragraph.extract()
+
+    for paragraph in soup.find_all("p"):
+        if paragraph.get_text(" ", strip=True) == "Великий инструмент Творения — нож.":
+            paragraph["class"] = paragraph.get("class", []) + ["wutc-quote"]
+
+
 def prepare_tables(soup: BeautifulSoup) -> None:
+    numeric_re = re.compile(r"^[\d\s.,%×xX*+:/()\-–—dD]+(sp)?$")
+    cost_words = ("стоимость", "цена", "плата", "ценность", "cost")
+
     for table in soup.find_all("table"):
-        classes = table.get("class", [])
-        table["class"] = classes + ["table", "table-striped", "table-sm", "align-middle"]
+        table["class"] = ["table", "table-light", "table-striped", "table-sm"]
+
+        for row in table.find_all("tr"):
+            cells = row.find_all("td", recursive=False)
+            if not cells:
+                continue
+            first = cells[0]
+            header = soup.new_tag("th")
+            header["scope"] = "row"
+            header["class"] = "fw-normal"
+            for child in list(first.children):
+                header.append(child.extract())
+            first.replace_with(header)
+
+        head = table.find("thead")
+        rows = table.select("tbody tr")
+        if head is None or not rows:
+            wrapper = soup.new_tag("div")
+            wrapper["class"] = "table-responsive"
+            table.wrap(wrapper)
+            continue
+
+        head_cells = head.find_all(["th", "td"], recursive=False)
+        column_count = max(
+            len(head_cells),
+            max(len(row.find_all(["th", "td"], recursive=False)) for row in rows),
+        )
+        for column in range(1, column_count):
+            values = []
+            numeric = True
+            for row in rows:
+                cells = row.find_all(["th", "td"], recursive=False)
+                if column >= len(cells):
+                    numeric = False
+                    break
+                text = cells[column].get_text(" ", strip=True)
+                if not text:
+                    continue
+                if not numeric_re.match(text) or not any(ch.isdigit() for ch in text):
+                    numeric = False
+                    break
+                values.append(cells[column])
+            if not numeric or not values:
+                continue
+            head_text = (
+                head_cells[column].get_text(" ", strip=True).lower()
+                if column < len(head_cells)
+                else ""
+            )
+            align = "text-end" if any(word in head_text for word in cost_words) else "text-center"
+            if column < len(head_cells):
+                head_cells[column]["class"] = head_cells[column].get("class", []) + [align]
+            for cell in values:
+                cell["class"] = cell.get("class", []) + [align]
+
         wrapper = soup.new_tag("div")
         wrapper["class"] = "table-responsive"
         table.wrap(wrapper)
-
-
-def render_toc(entries: list[tuple[int, str, str]]) -> str:
-    items = []
-    for level, hid, text in entries:
-        cls = "toc-h2" if level == 2 else "toc-h3"
-        items.append(
-            f'<li class="{cls}"><a href="#{hid}">{escape(text)}</a></li>'
-        )
-    is_open = " open" if len(entries) <= 60 else ""
-    return (
-        f'<details class="wutc-toc"{is_open}>'
-        '<summary class="wutc-toc-title">Содержание</summary>'
-        f'<ul>{"".join(items)}</ul>'
-        "</details>"
-    )
 
 
 def render_navbar(books: list[dict]) -> str:
@@ -211,30 +320,17 @@ def main() -> None:
     processed = []
     for spec, chunk in zip(BOOKS, chunks):
         soup = BeautifulSoup(pandoc(chunk), "html.parser")
-        entries = toc_entries(soup, spec["toc_levels"])
-        nav = [(lvl, hid, text) for lvl, hid, text in entries if lvl in spec["nav_levels"]]
+        extract_subtitle(soup)
+        style_quotes(soup, spec)
+        nav = toc_entries(soup, spec["nav_levels"])
         prepare_tables(soup)
         add_anchors(soup)
-
-        h1 = soup.find("h1")
-        h2s = soup.find_all("h2")
-        toc_node = BeautifulSoup(render_toc(entries), "html.parser")
-        first_heading = entries[0][2] if entries else ""
-        if re.match(r"^Книга\s+\d", first_heading) and len(h2s) > 1:
-            # «Книга 1/2 — …» — подзаголовок; ставим оглавление после интро.
-            h2s[1].insert_before(toc_node)
-        elif h2s:
-            # У Treasure подзаголовка нет — ставим перед первым разделом.
-            h2s[0].insert_before(toc_node)
-        elif h1 is not None:
-            h1.insert_after(toc_node)
 
         processed.append(
             {
                 **spec,
                 "content": "".join(str(x) for x in soup.contents),
                 "nav": nav,
-                "toc_count": len(entries),
                 "table_count": len(soup.find_all("table")),
             }
         )
@@ -249,10 +345,7 @@ def main() -> None:
             content=page["content"],
         )
         (ROOT / page["file"]).write_text(html, encoding="utf-8")
-        print(
-            f'{page["file"]}: таблиц {page["table_count"]}, '
-            f'пунктов оглавления {page["toc_count"]}'
-        )
+        print(f'{page["file"]}: таблиц {page["table_count"]}')
 
     print("Готово.")
 
