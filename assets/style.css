@@ -21,8 +21,8 @@ html {
 
 body {
     font-family: "Averia Serif Libre", "Alegreya", "Times New Roman", Times, serif;
-    font-size: 1.05rem;
-    font-weight: 400;
+    font-size: 1.15rem;
+    font-weight: 500;
     line-height: 1.5;
     color: var(--wutc-ink);
     background-color: var(--wutc-deep);
@@ -251,6 +251,7 @@ h4:hover .header-anchor,
 }
 
 .table {
+    font-size: 1rem;
     --bs-table-color: var(--wutc-ink);
     --bs-table-bg: transparent;
     --bs-table-border-color: rgba(255, 255, 255, .15);
