@@ -39,6 +39,23 @@ BOOKS = [
     },
 ]
 
+
+INTRO_HTML = {
+    "index.html": """
+<h2 id="вступление">Вступление</h2>
+<p>Этот неофициальный перевод «Wolves Upon the Coast» — независимая работа, не связанная с Luke Gearing и не являющаяся официальным изданием.</p>
+<p>Перевод следует структуре оригинальных книг: правила, таблицы и формулировки сохранены; термины унифицированы, а повторы согласованы между книгами. Материалы, адресованные Рефери, не опускались.</p>
+<p>Оригинал: <a href="https://lukegearing.blot.im/wolves-upon-the-coast">Wolves Upon the Coast</a>.</p>
+""",
+    "magic.html": """
+<h2 id="слово-предостережения">Слово предостережения</h2>
+<p><strong>Если вы игрок, содержимое этой книги лучше не читать.</strong></p>
+<p>Магия в <a href="https://lukegearing.blot.im/wolves-upon-the-coast">«Wolves Upon the Coast»</a> лучше всего раскрывается в ходе игры и остаётся на усмотрение Рефери. На практике это значит, что всё прочитанное здесь может отличаться в вашей игре. Может вообще отсутствовать. Узнать наверняка невозможно.</p>
+<p><a href="#заклинания">Заклинания</a> и <a href="#оберег">обереги</a> переведены с сохранением структуры оригинального текста: компоненты, эффекты и длительность указаны так же, как в источнике. Многие формулировки обращены к гипотетическому «вы» — персонажу игрока, который собирает компоненты, участвует в ритуале, читает заклинание или активирует оберег. Если вы Рефери, эти версии может быть проще объяснять новым игрокам — язык перевода ближе к <a href="index.html">«Книге 1»</a> — или, наоборот, удобнее выбирать, что именно сообщать игроку.</p>
+<p>Информация, связанная с <a href="https://lukegearing.itch.io/wolves-upon-the-coast-grand-campaign">Grand Campaign</a>, — например, где искать растения и ингредиенты, — в переводе сохранена.</p>
+""",
+}
+
 PAGE_TEMPLATE = """<!DOCTYPE html>
 <html lang="ru" data-bs-theme="dark">
 <head>
@@ -52,7 +69,7 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/style.css?v={css_v}" rel="stylesheet">
 </head>
-<body>
+<body class="{body_class}">
 <a class="visually-hidden-focusable" href="#main">К содержанию</a>
 <nav class="navbar navbar-expand-md sticky-top wutc-navbar">
     <div class="container-xxl">
@@ -217,6 +234,53 @@ def style_quotes(soup: BeautifulSoup, spec: dict) -> None:
             paragraph["class"] = paragraph.get("class", []) + ["wutc-quote"]
 
 
+def insert_intro(soup: BeautifulSoup, spec: dict) -> None:
+    html = INTRO_HTML.get(spec["file"])
+    if not html:
+        return
+    fragment = BeautifulSoup(html, "html.parser")
+    target = "Персонажи" if spec["file"] == "index.html" else "Заклинания"
+    heading = next(
+        (h for h in soup.find_all("h2") if h.get_text(" ", strip=True) == target),
+        None,
+    )
+    if heading is None:
+        return
+    for node in list(fragment.contents):
+        heading.insert_before(node.extract())
+
+
+def insert_quick_index(soup: BeautifulSoup) -> None:
+    for title in ("Заклинания", "Оберег"):
+        heading = next(
+            (h for h in soup.find_all("h2") if h.get_text(" ", strip=True) == title),
+            None,
+        )
+        if heading is None:
+            continue
+        entries = []
+        for sibling in heading.find_next_siblings():
+            if sibling.name == "h2":
+                break
+            if sibling.name == "h3" and sibling.get("id"):
+                entries.append((sibling["id"], sibling.get_text(" ", strip=True)))
+        if not entries:
+            continue
+        alert = soup.new_tag("div")
+        alert["class"] = "alert wutc-index"
+        listing = soup.new_tag("ul")
+        listing["class"] = "list-unstyled wutc-qr"
+        for ident, text in entries:
+            item = soup.new_tag("li")
+            link = soup.new_tag("a")
+            link["href"] = f"#{ident}"
+            link.string = text
+            item.append(link)
+            listing.append(item)
+        alert.append(listing)
+        heading.insert_after(alert)
+
+
 def prepare_tables(soup: BeautifulSoup) -> None:
     numeric_re = re.compile(r"^[\d\s.,%×xX*+:/()\-–—dD]+(sp)?$")
     cost_words = ("стоимость", "цена", "плата", "ценность", "cost")
@@ -318,6 +382,8 @@ def main() -> None:
         soup = BeautifulSoup(pandoc(chunk), "html.parser")
         extract_subtitle(soup)
         style_quotes(soup, spec)
+        insert_intro(soup, spec)
+        insert_quick_index(soup)
         nav = toc_entries(soup, spec["nav_levels"])
         prepare_tables(soup)
         add_anchors(soup)
@@ -340,6 +406,7 @@ def main() -> None:
             title=escape(page["title"]),
             short=escape(page["short"]),
             nav=navbar,
+            body_class="page-magic" if page["file"] == "magic.html" else "",
             css_v=css_v,
             js_v=js_v,
             content=page["content"],

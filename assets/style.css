@@ -265,6 +265,51 @@ h4:hover .header-anchor,
     border-bottom-color: rgba(255, 255, 255, .35);
 }
 
+/* ---------- Вступление и индекс ---------- */
+
+.alert {
+    border: .25rem solid var(--wutc-rule);
+    border-radius: 0;
+    background: linear-gradient(180deg, var(--wutc-paper-soft), var(--wutc-paper));
+    color: var(--wutc-ink);
+    padding: 1rem 1.25rem .75rem;
+    margin: 1.5rem 0;
+}
+
+.wutc-qr {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    column-count: 2;
+    column-gap: 2rem;
+}
+
+@media (min-width: 768px) {
+    .wutc-qr {
+        column-count: 3;
+    }
+}
+
+@media (min-width: 1200px) {
+    .wutc-qr {
+        column-count: 4;
+    }
+}
+
+.wutc-qr li {
+    break-inside: avoid;
+    margin-bottom: .25rem;
+}
+
+/* ---------- Книга 2: фиолетовый акцент ---------- */
+
+.page-magic {
+    --wutc-green: #d9c;
+    --wutc-rule: #614;
+    --wutc-navbar: #614;
+    --wutc-deep: #302;
+}
+
 /* ---------- Мелкое ---------- */
 
 code {
